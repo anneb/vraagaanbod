@@ -1,5 +1,7 @@
 .env
+public/keys.js
 var
+
 
 # Node.js
 node_modules/

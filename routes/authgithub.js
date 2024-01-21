@@ -24,8 +24,8 @@ passport.use(new GithubStrategy({
   ], (err, row) => {
     if (err) { return cb(err); }
     if (!row) {
-      db.run('INSERT INTO users (name) VALUES (?)', [
-        profile.displayName
+      db.run('INSERT INTO users (name, emails) VALUES (?, ?)', [
+        profile.displayName, JSON.stringify(profile.emails)
       ], function(err) {
         if (err) { return cb(err); }
         const id = this.lastID;
@@ -37,7 +37,8 @@ passport.use(new GithubStrategy({
           if (err) { return cb(err); }
           const user = {
             id: id,
-            name: profile.displayName
+            name: profile.displayName,
+            emails: profile.emails
           };
           return cb(null, user);
         });
