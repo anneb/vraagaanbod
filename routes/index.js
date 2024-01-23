@@ -59,9 +59,6 @@ router.post('/', ensureLoggedIn, (req, res, next) => {
   req.body.title = req.body.title.trim();
   next();
 }, (req, res, next) => {
-  if (req.body.title !== '') { return next(); }
-  return res.redirect('/' + (req.body.filter || ''));
-}, (req, res, next) => {
   db.run('INSERT INTO vraagaanbod (user_id,supply,publish,title,description,category,cubic_meters,latitude,longitude,entrydate,startdate,enddate)\
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
     req.user.id,

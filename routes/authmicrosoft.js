@@ -3,11 +3,13 @@ import passport from 'passport';
 import { Strategy as MicrosoftStrategy } from 'passport-microsoft';
 import db from '../db.js';
 
+const BASE_URL = process.env['BASE_URL'] || '/';
+
 // Configure the Microsoft strategy for use by Passport.
 passport.use(new MicrosoftStrategy({
   clientID: process.env['MICROSOFT_CLIENT_ID'],
   clientSecret: process.env['MICROSOFT_CLIENT_SECRET'],
-  callbackURL: '/auth/microsoft/callback',
+  callbackURL: `${BASE_URL}auth/microsoft/callback`,
   scope: ['User.Read'],
   tenant: 'common',
   state: true
@@ -66,8 +68,8 @@ const router = express.Router();
 router.get('/login/federated/microsoft', passport.authenticate('microsoft'));
 
 router.get('/auth/microsoft/callback', passport.authenticate('microsoft', {
-  successReturnToOrRedirect: '/',
-  failureRedirect: '/login'
+  successReturnToOrRedirect: '../../',
+  failureRedirect: '../../login'
 }));
 
 /* POST /logout
@@ -77,7 +79,7 @@ router.get('/auth/microsoft/callback', passport.authenticate('microsoft', {
 router.post('/logout', (req, res, next) => {
   req.logout(req.user, err=> {
     if (err) { return next(err); }
-    return res.redirect('/');
+    return res.redirect('./');
   });
 });
 

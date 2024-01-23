@@ -3,6 +3,8 @@ import passport from 'passport';
 import GithubStrategy from 'passport-github';
 import db from '../db.js';
 
+const BASE_URL = process.env['BASE_URL'] || '/';
+
 // Configure the Facebook strategy for use by Passport.
 //
 // OAuth 2.0-based strategies require a `verify` function which receives the
@@ -13,7 +15,7 @@ import db from '../db.js';
 passport.use(new GithubStrategy({
   clientID: process.env['GITHUB_CLIENT_ID'],
   clientSecret: process.env['GITHUB_CLIENT_SECRET'],
-  callbackURL: '/auth/github/callback',
+  callbackURL: `${BASE_URL}auth/github/callback`,
   scope: [ 'profile','user:email' ],
   state: true
 },
@@ -97,8 +99,8 @@ router.get('/login/federated/github', passport.authenticate('github'));
     user returns, they are signed in to their linked account.
 */
 router.get('/auth/github/callback', passport.authenticate('github', {
-  successReturnToOrRedirect: '/',
-  failureRedirect: '/login'
+  successReturnToOrRedirect: '../../',
+  failureRedirect: '../../login'
 }));
 
 /* POST /logout
@@ -108,7 +110,7 @@ router.get('/auth/github/callback', passport.authenticate('github', {
 router.post('/logout', (req, res, next) => {
   req.logout(req.user, err=> {
     if (err) { return next(err); }
-    return res.redirect('/');
+    return res.redirect('./');
   });
 });
 

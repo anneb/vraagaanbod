@@ -1,5 +1,7 @@
 import './config.js';
 
+const BASE_URL = process.env['BASE_URL'] || '/';
+
 // setup __dirname and __filename
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -58,10 +60,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/', indexRouter);
-app.use('/', googleAuthRouter);
-app.use('/', githubAuthRouter);
-app.use('/', microsoftAuthRouter);
+app.use(BASE_URL, indexRouter);
+app.use(BASE_URL, googleAuthRouter);
+app.use(BASE_URL, githubAuthRouter);
+app.use(BASE_URL, microsoftAuthRouter);
 
 app.use((req, res, next) => {
   next(createError(404));
