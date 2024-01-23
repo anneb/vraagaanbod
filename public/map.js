@@ -83,7 +83,7 @@ const updateVraagAanbod = async function(id) {
     formValues.longitude = lngLat.lng;
     formValues.latitude = lngLat.lat;
     formValues.supply = formValues.issupply === '0' ? false : true;
-    const response = await fetch(`/${id}`, {
+    const response = await fetch(`./${id}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -178,7 +178,7 @@ function createMarker(id, long, lat, title, supply, description) {
 async function removeVraagAanbod(id) {
     const marker = markers[id];
     if (marker) {
-        const response = await fetch(`/${id}/delete`, {
+        const response = await fetch(`./${id}/delete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -216,7 +216,7 @@ map.on('click', async function(e) {
     const title = 'Zonder titel';
     const supply = false;
     const description = '';
-    const response = await fetch('/', {
+    const response = await fetch('./', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
