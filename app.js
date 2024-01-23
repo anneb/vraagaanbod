@@ -26,6 +26,8 @@ const SQLiteStore = connectSqlite3(session);
 
 const app = express();
 
+app.set('trust proxy', ['127.0.0.1', '::1']);
+
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
