@@ -24,6 +24,16 @@
 			.marker.selected svg {
  				filter: drop-shadow(0 0 3px rgba(0, 0, 0, 1));
 			}
+			.form-group {
+				display: flex;
+				flex-direction: column;
+			}
+			.form-group label {
+				margin-bottom: 5px;
+			}
+			.form-group textarea {
+				resize: vertical; /* Allow vertical resize */
+			}
 		</style>
 	</head>
 	<body>
@@ -53,10 +63,11 @@
 						<input type="radio" id="aanbod" name="issupply" value="1">
 						<label for="aanbod">Aanbod</label><br>
 						<label for="title">Titel</label>
-						<input name="title" id="title" placeholder="Titel"><br>
-						<label for="description">Beschrijving</label>
-						<textarea name="description" id="description" placeholder="Beschrijving"></textarea>
-						<br>
+						<input type="text" title name="title" id="title" placeholder="Titel"><br>
+						<div class="form-group">
+							<label for="description">Beschrijving</label>
+							<textarea name="description" id="description" placeholder="Beschrijving"></textarea>
+						</div>
 						<input type="button" name="delete" id="delete" value="Verwijderen">
 						<input type="hidden" name="_csrf" value="<%= csrfToken %>">
 					</form>

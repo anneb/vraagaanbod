@@ -3,6 +3,7 @@ import {config} from './keys.js';
 const markers = {};
 let initiatingMarkerForm = false;
 
+// create map showing the Netherlands
 const map = new maplibregl.Map({
     container: 'map',
     style: `https://api.maptiler.com/maps/bright/style.json?key=${config.keys.maptiler}`,
@@ -10,6 +11,7 @@ const map = new maplibregl.Map({
     zoom: 6
 });
 
+// update color of marker
 function setMarkerColor(id, color) {
     const marker = markers[id];
     if (marker) {
@@ -21,6 +23,21 @@ function setMarkerColor(id, color) {
     }
 }
 
+let timer = null;
+const handleKeyUp = (e) => {
+    e.preventDefault();
+    if (initiatingMarkerForm) {
+        return;
+    }
+    if (timer) {
+        clearTimeout(timer);
+    }
+    timer = setTimeout(async () => {
+        const id = markerform.querySelector('input[name="id"]').value;
+        const updated = await updateVraagAanbod(id);
+    }, 1500);
+}
+// setup marker form and handlers
 const setup = async () => {
     const markerform = document.querySelector('#markerform');
     markerform.querySelector('input[name="delete"]').addEventListener('click', (e) => {
@@ -37,9 +54,14 @@ const setup = async () => {
         const id = markerform.querySelector('input[name="id"]').value;
         const updated = await updateVraagAanbod(id);        
     }));
+    // setup handler for text inputs, update if typing stopped for more than 2 seconds
+    const textinputs = markerform.querySelectorAll('input[type="text"]');
+    textinputs.forEach(textinput=>textinput.addEventListener('keyup', (e) => handleKeyUp(e)));
+    markerform.querySelector('textarea').addEventListener('keyup', (e) => handleKeyUp(e));
 }
 setup();
 
+// handler for dragged marker
 const markerDragend = function(e) {
     const marker = markers[e.target.id];
     if (marker) {
@@ -47,6 +69,7 @@ const markerDragend = function(e) {
     }
 }
 
+// update vraag en aanbod in database, update UI if successful
 const updateVraagAanbod = async function(id) {
     const marker = markers[id];
     if (!marker) {
@@ -101,22 +124,25 @@ const updateVraagAanbod = async function(id) {
     }
 }
 
+// update marker form to selected marker
 const initiateMarkerForm = function(markerId) {
     initiatingMarkerForm = true;
     const markerform = document.querySelector('#markerform');
     const marker = markers[markerId];
     if (marker) {
-        
         markerform.querySelector('input[name="id"]').value = marker.id;
         markerform.querySelector('#vraag').checked = !marker.supply; 
         markerform.querySelector('#aanbod').checked = marker.supply; 
         markerform.querySelector('input[name="title"]').value = marker.title;
+        markerform.querySelector('textarea[name="description"]').value = marker.description;
         markerform.classList.remove('hidden');
     } else {
         markerform.classList.add('hidden');
     }
     initiatingMarkerForm = false;
 }
+
+// handler for marker selection
 let prevSelectedMarker = -1;
 const markerSelect = function(e, marker) {
     if (e.preventDefault) {
@@ -130,19 +156,25 @@ const markerSelect = function(e, marker) {
     prevSelectedMarker = marker?.id;
     initiateMarkerForm(marker?.id);
 }
-function createMarker(id, long, lat, title, supply) {
+
+// create marker and setups handlers
+function createMarker(id, long, lat, title, supply, description) {
     const marker = new maplibregl.Marker({color: supply ? 'red': 'green', draggable: true})
         .setLngLat([long, lat]) // Set the position to the clicked point
         .addTo(map); // Add the marker to the map
     marker.id = id;
     marker.title = title;
     marker.supply = supply;
+    marker.description = description;
     marker.getElement().classList.add('marker');
     marker.getElement().addEventListener('click', (e)=>markerSelect(e, marker));
+    marker.on('dragstart', (e)=>markerSelect(e, marker));
     marker.on('dragend', (e)=>markerDragend(e));
     markers[id] = marker;
     return marker;
 }
+
+// remove marker from database and update GUI
 async function removeVraagAanbod(id) {
     const marker = markers[id];
     if (marker) {
@@ -165,15 +197,25 @@ async function removeVraagAanbod(id) {
         }
     }
 }
+
+// add markers with marker handlers to map
 map.on('load', (e) => {
     const features = JSON.parse(document.getElementById('map').getAttribute('data-points'));
     for (const feature of features) {
-        createMarker(feature.id, feature.longitude, feature.latitude, feature.title, feature.supply);
+        createMarker(feature.id, 
+            feature.longitude, 
+            feature.latitude, 
+            feature.title, 
+            feature.supply,
+            feature.description);
     }
 })
+
+// add map click handler to add new markers
 map.on('click', async function(e) {
     const title = 'Zonder titel';
     const supply = false;
+    const description = '';
     const response = await fetch('/', {
         method: 'POST',
         headers: {
@@ -184,12 +226,13 @@ map.on('click', async function(e) {
             supply: supply,
             longitude: e.lngLat.lng,
             latitude: e.lngLat.lat,
+            entrydate: Math.floor(new Date().getTime() / 1000),
             _csrf: document.querySelector('input[name="_csrf"]').value
         })
     });
     if (response.ok) {
         const data = await response.json();
-        createMarker(data.id, e.lngLat.lng, e.lngLat.lat, title, supply);
+        createMarker(data.id, e.lngLat.lng, e.lngLat.lat, title, supply,description);
         markerSelect(e, markers[data.id])
     } else {
         markerSelect(e, null);

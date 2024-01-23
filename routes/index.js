@@ -86,33 +86,19 @@ router.post('/:id(\\d+)', ensureLoggedIn, (req, res, next) => {
   req.body.title = req.body.title.trim();
   next();
 }, (req, res, next) => {
-  db.run('UPDATE vraagaanbod \
-            SET supply = ?, \
-                publish = ?, \
-                title = ?, \
-                description = ?, \
-                category = ?, \
-                cubic_meters = ?, \
-                latitude = ?, \
-                longitude = ?, \
-                entrydate = ?, \
-                startdate = ?, \
-                enddate = ? \
-        WHERE id = ? AND user_id = ?', [
-    req.body.supply,
-    req.body.publish,
-    req.body.title,
-    req.body.description,
-    req.body.category,
-    req.body.cubic_meters,
-    req.body.latitude,
-    req.body.longitude,
-    req.body.entrydate,
-    req.body.startdate,
-    req.body.enddate,
-    req.params.id,
-    req.user.id
-  ], function(err) {
+  let updateFields = ['supply', 'publish', 'title', 'description', 'category', 'cubic_meters', 'latitude', 'longitude', 'startdate', 'enddate'];
+
+  let fieldsToUpdate = updateFields.filter(field => req.body[field] !== undefined);
+  let query = 'UPDATE vraagaanbod SET ' + fieldsToUpdate.map(field => `${field} = ?`).join(', ');
+
+  let values = fieldsToUpdate.map(field => req.body[field]);
+  values.push(req.params.id, req.user.id);
+
+  query += ' WHERE id = ? AND user_id = ?';
+
+  console.log(query);
+
+  db.run(query, values, function(err) {
     if (err) { return next(err); }
     return res.json({ id: req.params.id });
   });
