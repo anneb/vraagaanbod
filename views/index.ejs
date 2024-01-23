@@ -9,10 +9,20 @@
 		<link rel="stylesheet" href="/css/app.css">
 		<script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
     	<link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+		<script type="module" src="./map.js"></script>
 		<style>
 			#map {
 				height: 400px;
 				width: 100%;
+			}
+			.marker {
+				cursor: pointer;
+			}
+			.hidden {
+				display: none;
+			}
+			.marker.selected svg {
+ 				filter: drop-shadow(0 0 3px rgba(0, 0, 0, 1));
 			}
 		</style>
 	</head>
@@ -32,99 +42,29 @@
 			</nav>
 			<header class="header">
 				<h1>Vraag en Aanbod</h1>
-				<div class="map" id="map"></div>
-				<form action="/" method="post">
-					<select name="isvraag" id="isvraag">
-						<option value="" disabled selected hidden>Kies vraag/aanbod</option>
-						<option value="vraag">Vraag</option>
-						<option value="aanbod">Aanbod</option>
-					</select>
-					<input type="number" placeholder="Breedtegraad" name="breedtegraad" step="any" required>
-					<input type="number" placeholder="Lengtegraad" name="lengtegraad" step="any" required>
-					<input name="title" placeholder="Nieuw aanbod of vraag" autofocus>
-					<% if (filter) { %>
-					<input type="hidden" name="filter" value="<%= filter %>"/>
-					<% } %>
-					<input type="hidden" name="_csrf" value="<%= csrfToken %>">
-					<input type="submit" value="Toevoegen">
-				</form>
+				<div class="map" id="map" data-points='<%- JSON.stringify(vraagaanbod) %>'></div>
+				<div>Klik op de kaart om een nieuw locatie voor vraag of aanbod toe te voegen</div>
+				<div>Klik op een marker om een vraag of aanbod aan te passen of te verwijderen</div>
+				<div>
+					<form action="/" method="post" id="markerform" class="hidden">
+						<input type="hidden" name="id" id="id" value="-1">
+						<input type="radio" id="vraag" name="issupply" value="0">
+						<label for="vraag">Vraag</label><br>
+						<input type="radio" id="aanbod" name="issupply" value="1">
+						<label for="aanbod">Aanbod</label><br>
+						<label for="title">Titel</label>
+						<input name="title" id="title" placeholder="Titel"><br>
+						<label for="description">Beschrijving</label>
+						<textarea name="description" id="description" placeholder="Beschrijving"></textarea>
+						<br>
+						<input type="button" name="delete" id="delete" value="Verwijderen">
+						<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+					</form>
+				</div>
 			</header>
-			<% if (activeCount + completedCount > 0) { %>
-			<section class="main">
-				<form action="/toggle-all" method="post">
-					<input id="toggle-all" class="toggle-all" type="checkbox" name="completed" <%- activeCount == 0 ? 'checked' : '' %> onchange="this.form.submit();">
-					<label for="toggle-all">Mark all as complete</label>
-					<input type="hidden" name="_csrf" value="<%= csrfToken %>">
-				</form>
-				<ul class="todo-list">
-					<% todos.forEach(function(todo) { %>
-					<li <%- todo.completed ? 'class="completed"' : '' %>>
-						<form action="<%= todo.url %>" method="post">
-							<div class="view">
-								<input class="toggle" type="checkbox" name="completed" <%- todo.completed ? 'checked' : '' %> onchange="this.form.submit();">
-								<label ondblclick="this.closest('li').className = this.closest('li').className + ' editing'; this.closest('li').querySelector('input.edit').focus(); this.closest('li').querySelector('input.edit').value = ''; this.closest('li').querySelector('input.edit').value = '<%= todo.title %>';"><%= todo.title %></label>
-								<button class="destroy" form="delete-<%= todo.id %>"></button>
-							</div>
-							<input class="edit" name="title" value="<%= todo.title %>" onkeyup="if (event.keyCode == 27) { this.setAttribute('data-esc', ''); this.closest('li').className = this.closest('li').className.replace('editing', ''); }" onblur="if (this.getAttribute('data-esc') !== null) { return this.removeAttribute('data-esc'); } this.form.submit();">
-							<% if (filter) { %>
-							<input type="hidden" name="filter" value="<%= filter %>"/>
-							<% } %>
-							<input type="hidden" name="_csrf" value="<%= csrfToken %>">
-						</form>
-						<form id="delete-<%= todo.id %>" action="<%= todo.url %>/delete" method="post">
-							<% if (filter) { %>
-							<input type="hidden" name="filter" value="<%= filter %>"/>
-							<% } %>
-							<input type="hidden" name="_csrf" value="<%= csrfToken %>">
-						</form>
-					</li>
-					<% }); %>
-				</ul>
-			</section>
-			<% } %>
-			<% if (activeCount + completedCount > 0) { %>
-			<footer class="footer">
-				<span class="todo-count"><strong><%= activeCount %></strong> <%= pluralize('item', activeCount) %> left</span>
-				<ul class="filters">
-					<li>
-						<a <%- !filter ? 'class="selected"' : '' %> href="/">All</a>
-					</li>
-					<li>
-						<a <%- filter == 'active' ? 'class="selected"' : '' %> href="/active">Active</a>
-					</li>
-					<li>
-						<a <%- filter == 'completed' ? 'class="selected"' : '' %> href="/completed">Completed</a>
-					</li>
-				</ul>
-				<% if (completedCount > 0) { %>
-				<form action="/clear-completed" method="post">
-					<button class="clear-completed">Clear completed</button>
-					<% if (filter) { %>
-					<input type="hidden" name="filter" value="<%= filter %>"/>
-					<% } %>
-					<input type="hidden" name="_csrf" value="<%= csrfToken %>">
-				</form>
-				<% } %>
-			</footer>
-			<% } %>
 		</section>
 		<footer class="info">
-			<p>Double-click om aan te passen</p>
 			<p>Authentication powered by <a href="https://www.passportjs.org">Passport</a></p>
 		</footer>
-		<script src="keys.js"></script>
-		<script>
-			var map = new maplibregl.Map({
-				container: 'map',
-				style: `https://api.maptiler.com/maps/bright/style.json?key=${config.keys.maptiler}`,
-				center: [5.27,52.19],
-				zoom: 6
-			});
-			map.on('click', function(e) {
-				const marker = new maplibregl.Marker({color: 'yellow', draggable: true})
-					.setLngLat([e.lngLat.lng, e.lngLat.lat]) // Set the position to the clicked point
-					.addTo(map); // Add the marker to the map
-			});
-		</script>
 	</body>
 </html>

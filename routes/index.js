@@ -4,21 +4,30 @@ import db from '../db.js';
 
 const ensureLoggedIn = ensureLogIn();
 
-const fetchTodos = (req, res, next) => {
-  db.all('SELECT rowid AS id, * FROM todos WHERE owner_id = ?', [
+const fetchVraagAanbod = (req, res, next) => {
+  db.all('SELECT * FROM vraagaanbod WHERE user_id = ?', [
     req.user.id
   ], (err, rows) => {
     if (err) { return next(err); }
     
-    const todos = rows.map(row => ({
+    const features = rows.map(row => ({
       id: row.id,
+      supply: row.supply,
+      publish: row.publish,
       title: row.title,
-      completed: row.completed == 1 ? true : false,
+      description: row.description,
+      category: row.category,
+      cubic_meters: row.cubic_meters,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      entrydate: row.entrydate,
+      startdate: row.startdate,
+      enddate: row.enddate,
       url: '/' + row.id
     }));
-    res.locals.todos = todos;
-    res.locals.activeCount = todos.filter(todo => !todo.completed).length;
-    res.locals.completedCount = todos.length - res.locals.activeCount;
+    res.locals.vraagaanbod = features;
+    res.locals.activeCount = features.filter(todo => !todo.completed).length;
+    res.locals.completedCount = features.length - res.locals.activeCount;
     next();
   });
 }
@@ -29,7 +38,7 @@ const router = express.Router();
 router.get('/', (req, res, next) => {
   if (!req.user) { return res.render('home'); }
   next();
-}, fetchTodos, (req, res, next) => {
+}, fetchVraagAanbod, (req, res, next) => {
   res.locals.filter = null;
   res.render('index', { user: req.user });
 });
@@ -46,18 +55,6 @@ router.get('/login', (req, res, next) => {
   res.render('login');
 });
 
-router.get('/active', ensureLoggedIn, fetchTodos, (req, res, next) => {
-  res.locals.todos = res.locals.todos.filter(todo => !todo.completed);
-  res.locals.filter = 'active';
-  res.render('index', { user: req.user });
-});
-
-router.get('/completed', ensureLoggedIn, fetchTodos, (req, res, next) => {
-  res.locals.todos = res.locals.todos.filter(todo => todo.completed);
-  res.locals.filter = 'completed';
-  res.render('index', { user: req.user });
-});
-
 router.post('/', ensureLoggedIn, (req, res, next) => {
   req.body.title = req.body.title.trim();
   next();
@@ -65,13 +62,23 @@ router.post('/', ensureLoggedIn, (req, res, next) => {
   if (req.body.title !== '') { return next(); }
   return res.redirect('/' + (req.body.filter || ''));
 }, (req, res, next) => {
-  db.run('INSERT INTO todos (owner_id, title, completed) VALUES (?, ?, ?)', [
+  db.run('INSERT INTO vraagaanbod (user_id,supply,publish,title,description,category,cubic_meters,latitude,longitude,entrydate,startdate,enddate)\
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
     req.user.id,
+    req.body.supply,
+    req.body.publish,
     req.body.title,
-    req.body.completed == true ? 1 : null
+    req.body.description,
+    req.body.category,
+    req.body.cubic_meters,
+    req.body.latitude,
+    req.body.longitude,
+    req.body.entrydate,
+    req.body.startdate,
+    req.body.enddate
   ], function(err) {
     if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
+    return res.json({ id: this.lastID });
   });
 });
 
@@ -79,53 +86,45 @@ router.post('/:id(\\d+)', ensureLoggedIn, (req, res, next) => {
   req.body.title = req.body.title.trim();
   next();
 }, (req, res, next) => {
-  if (req.body.title !== '') { return next(); }
-  db.run('DELETE FROM todos WHERE rowid = ? AND owner_id = ?', [
-    req.params.id,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-}, (req, res, next) => {
-  db.run('UPDATE todos SET title = ?, completed = ? WHERE rowid = ? AND owner_id = ?', [
+  db.run('UPDATE vraagaanbod \
+            SET supply = ?, \
+                publish = ?, \
+                title = ?, \
+                description = ?, \
+                category = ?, \
+                cubic_meters = ?, \
+                latitude = ?, \
+                longitude = ?, \
+                entrydate = ?, \
+                startdate = ?, \
+                enddate = ? \
+        WHERE id = ? AND user_id = ?', [
+    req.body.supply,
+    req.body.publish,
     req.body.title,
-    req.body.completed !== undefined ? 1 : null,
+    req.body.description,
+    req.body.category,
+    req.body.cubic_meters,
+    req.body.latitude,
+    req.body.longitude,
+    req.body.entrydate,
+    req.body.startdate,
+    req.body.enddate,
     req.params.id,
     req.user.id
   ], function(err) {
     if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
+    return res.json({ id: req.params.id });
   });
 });
 
 router.post('/:id(\\d+)/delete', ensureLoggedIn, (req, res, next) => {
-  db.run('DELETE FROM todos WHERE rowid = ? AND owner_id = ?', [
+  db.run('DELETE FROM vraagaanbod WHERE id = ? AND user_id = ?', [
     req.params.id,
     req.user.id
   ], function(err) {
     if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
-
-router.post('/toggle-all', ensureLoggedIn, (req, res, next) => {
-  db.run('UPDATE todos SET completed = ? WHERE owner_id = ?', [
-    req.body.completed !== undefined ? 1 : null,
-    req.user.id
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
-  });
-});
-
-router.post('/clear-completed', ensureLoggedIn, (req, res, next) => {
-  db.run('DELETE FROM todos WHERE owner_id = ? AND completed = ?', [
-    req.user.id,
-    1
-  ], function(err) {
-    if (err) { return next(err); }
-    return res.redirect('/' + (req.body.filter || ''));
+    return res.json({ id: req.params.id });
   });
 });
 

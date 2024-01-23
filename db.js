@@ -22,19 +22,14 @@ db.serialize(() => {
     PRIMARY KEY (provider, subject) \
   )");
   
-  db.run("CREATE TABLE IF NOT EXISTS todos ( \
-    owner_id INTEGER NOT NULL, \
-    title TEXT NOT NULL, \
-    completed INTEGER \
-  )");
-
+  
   // create a table for the vraag en aanbod with the following fields:
   // user_id, supply, title, description, category, cubic_meters, latitude, longtitude, date
   db.run("CREATE TABLE IF NOT EXISTS vraagaanbod ( \
     id INTEGER PRIMARY KEY AUTOINCREMENT, \
     user_id INTEGER NOT NULL, \
     supply BOOLEAN NOT NULL, \
-    publish BOOLEAN NOT NULL, \
+    publish BOOLEAN, \
     title TEXT, \
     description TEXT, \
     category TEXT, \
@@ -43,6 +38,7 @@ db.serialize(() => {
     longitude REAL, \
     entrydate TEXT, \
     startdate TEXT, \
+    enddate TEXt, \
     FOREIGN KEY(user_id) REFERENCES users(id) \
   )");
 });
